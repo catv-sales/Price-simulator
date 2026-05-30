@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ホームタウンでんき 料金比較</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#1D9E75;--green-light:#EAF3DE;--green-dark:#3B6D11;
+  --red-light:#FCEBEB;--red-dark:#A32D2D;
+  --bg:#F5F5F0;--card:#FFFFFF;--muted:#F1F0EA;
+  --text:#1A1A18;--sub:#6B6B65;--hint:#ABABAA;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+  --r:10px;--rl:14px;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;min-height:100vh;padding-bottom:3rem}
+.hdr{background:var(--green);padding:1rem 1.25rem;text-align:center;position:sticky;top:0;z-index:10}
+.hdr h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:.04em}
+.hdr p{font-size:11px;color:rgba(255,255,255,.75);margin-top:2px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--card);border-bottom:1px solid var(--border)}
+.tab{padding:.75rem;font-size:13px;font-weight:600;text-align:center;border:none;background:none;color:var(--sub);border-bottom:3px solid transparent;width:100%;display:block}
+.tab.active{color:var(--green);border-bottom-color:var(--green)}
+.sheet{display:none;padding:1rem 1rem 0;max-width:480px;margin:0 auto}
+.sheet.active{display:block}
+.field{margin-bottom:.9rem}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px;letter-spacing:.04em}
+.field input[type="number"]{width:100%;padding:10px 12px;font-size:16px;font-family:inherit;border:1px solid var(--border2);border-radius:var(--r);background:var(--card);color:var(--text);outline:none;min-height:44px}
+.field input[type="number"]:focus{border-color:var(--green)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.csel-wrap{position:relative}
+.csel{width:100%;min-height:44px;padding:10px 36px 10px 12px;font-size:16px;font-family:inherit;border:1px solid var(--border2);border-radius:var(--r);background:var(--card);color:var(--text);display:flex;align-items:center;user-select:none}
+.csel.placeholder{color:var(--hint)}
+.csel-wrap::after{content:'';position:absolute;right:13px;top:50%;transform:translateY(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--sub);pointer-events:none}
+.auto-field{background:var(--muted);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:13px;color:var(--text);min-height:44px;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+.auto-field.empty{color:var(--hint);font-size:12px}
+.calc-btn{width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:700;font-family:inherit;letter-spacing:.04em;min-height:50px;margin-top:.25rem;display:block}
+.result-wrap{margin-top:1rem}
+.result-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);padding:1.25rem;margin-bottom:1rem}
+.result-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.result-head .co{font-size:13px;font-weight:700;color:var(--sub)}
+.badge{font-size:11px;font-weight:700;padding:3px 11px;border-radius:20px;letter-spacing:.04em}
+.badge-save{background:var(--green-light);color:var(--green-dark)}
+.badge-loss{background:var(--red-light);color:var(--red-dark)}
+.sect-lbl{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.05em;margin-bottom:.5rem}
+.monthly-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem}
+.monthly-box{background:var(--muted);border-radius:var(--r);padding:.75rem 1rem;text-align:center}
+.monthly-box .lbl{font-size:10px;color:var(--sub);margin-bottom:4px;font-weight:600}
+.monthly-box .val{font-size:19px;font-weight:700;color:var(--text)}
+.diff-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+.diff-box{border-radius:var(--r);padding:.75rem 1rem;text-align:center}
+.diff-box .lbl{font-size:10px;font-weight:700;margin-bottom:4px;letter-spacing:.04em}
+.diff-box .val{font-size:20px;font-weight:700}
+.detail-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.detail-table th{text-align:left;padding:6px 2px;font-size:11px;font-weight:700;color:var(--sub);border-bottom:1px solid var(--border)}
+.detail-table th:not(:first-child){text-align:right}
+.detail-table td{padding:6px 2px;font-size:12px;color:var(--text);border-bottom:1px solid var(--border)}
+.detail-table td:not(:first-child){text-align:right}
+.detail-table tr:last-child td{border-bottom:none}
+.info-box{background:var(--muted);border-radius:var(--r);padding:.75rem 1rem;margin-top:.85rem;font-size:12px}
+.info-row{display:flex;gap:8px;padding:3px 0;align-items:flex-start}
+.info-lbl{color:var(--sub);font-weight:700;flex-shrink:0;min-width:3.5em}
+.info-val{color:var(--text);line-height:1.6;word-break:break-all}
+.hidden{display:none}
+/* ボトムシート */
+.bs-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200}
+.bs-overlay.open{display:block}
+.bs-sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-radius:16px 16px 0 0;max-height:65vh;display:flex;flex-direction:column;z-index:201}
+.bs-head{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem .75rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.bs-title{font-size:14px;font-weight:700;color:var(--text)}
+.bs-close{font-size:24px;line-height:1;background:none;border:none;color:var(--sub);padding:0 4px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
+.bs-list{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;padding-bottom:env(safe-area-inset-bottom,0)}
+.bs-item{display:block;width:100%;padding:15px 1.25rem;font-size:15px;font-family:inherit;text-align:left;background:none;border:none;border-bottom:1px solid var(--border);color:var(--text);min-height:50px}
+.bs-item:last-child{border-bottom:none}
+.bs-item.selected{color:var(--green);font-weight:700}
+.bs-item-disabled{color:var(--hint);font-size:13px;cursor:not-allowed;background:var(--muted)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>ホームタウンでんき 料金比較</h1>
+  <p>他社との電気代を簡単に比較できます</p>
+</div>
+
+<div class="tabs">
+  <button class="tab active" id="tab-k">金額から</button>
+  <button class="tab" id="tab-s">使用量から</button>
+</div>
+
+<div id="sheet-k" class="sheet active">
+  <div class="field"><label>① 他社名</label><div class="csel-wrap"><div class="csel placeholder" id="k-company">選択してください</div></div></div>
+  <div class="field"><label>② 他社セット割</label><div class="auto-field empty" id="k-setto">―</div></div>
+  <div class="field-row">
+    <div class="field"><label>③ 契約アンペア数</label><input type="number" id="k-ampere" placeholder="例: 50" inputmode="numeric"></div>
+    <div class="field"><label>　単位</label><div class="csel-wrap"><div class="csel" id="k-unit">A（従量B・ぴったり）</div></div></div>
+  </div>
+  <div class="field"><label>④ 電気代（円）</label><input type="number" id="k-denki" placeholder="例: 15000" inputmode="numeric"></div>
+  <div class="field"><label>⑤ 使用月</label><div class="csel-wrap"><div class="csel placeholder" id="k-month">選択してください</div></div></div>
+  <div class="field"><label>⑥ 当社割引</label><div class="csel-wrap"><div class="csel placeholder" id="k-discount">選択してください</div></div></div>
+  <div class="field"><label>⑦ 連絡先</label><div class="auto-field empty" id="k-contact">他社名を選択すると表示されます</div></div>
+  <div class="field"><label>⑧ 備考</label><div class="auto-field empty" id="k-memo">他社名を選択すると表示されます</div></div>
+  <button class="calc-btn" id="calc-k">比較計算する</button>
+  <div class="result-wrap hidden" id="k-result"></div>
+</div>
+
+<div id="sheet-s" class="sheet">
+  <div class="field"><label>① 他社名</label><div class="csel-wrap"><div class="csel placeholder" id="s-company">選択してください</div></div></div>
+  <div class="field"><label>② 他社セット割</label><div class="auto-field empty" id="s-setto">―</div></div>
+  <div class="field-row">
+    <div class="field"><label>③ 契約アンペア数</label><input type="number" id="s-ampere" placeholder="例: 1" inputmode="numeric"></div>
+    <div class="field"><label>　単位</label><div class="csel-wrap"><div class="csel" id="s-unit">A（従量B・ぴったり）</div></div></div>
+  </div>
+  <div class="field"><label>④ 使用量（kWh）</label><input type="number" id="s-usage" placeholder="例: 367" inputmode="numeric"></div>
+  <div class="field"><label>⑤ 使用月</label><div class="csel-wrap"><div class="csel placeholder" id="s-month">選択してください</div></div></div>
+  <div class="field"><label>⑥ 当社割引</label><div class="csel-wrap"><div class="csel placeholder" id="s-discount">選択してください</div></div></div>
+  <div class="field"><label>⑦ 連絡先</label><div class="auto-field empty" id="s-contact">他社名を選択すると表示されます</div></div>
+  <div class="field"><label>⑧ 備考</label><div class="auto-field empty" id="s-memo">他社名を選択すると表示されます</div></div>
+  <button class="calc-btn" id="calc-s">比較計算する</button>
+  <div class="result-wrap hidden" id="s-result"></div>
+</div>
+
+<div class="bs-overlay" id="bs-overlay">
+  <div class="bs-sheet" id="bs-sheet">
+    <div class="bs-head">
+      <span class="bs-title" id="bs-title">選択</span>
+      <button class="bs-close" id="bs-close">✕</button>
+    </div>
+    <div class="bs-list" id="bs-list"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// マスターデータ
+// ============================================================
+const COMPANIES = {
+  "HTE":      {basicA:{30:902.25,40:1203,50:1503.75,60:1804.5},basicKVA:300.75,t1qty:120,t1p:29.8,t2qty:300,t2p:36.4,t3p:37.97,settos:[{name:"トリプル",val:-550},{name:"TV＋NET",val:-440},{name:"TV or NET＋TEL",val:-330},{name:"TVのみ",val:-220},{name:"NETのみ",val:-220},{name:"なし",val:0},{name:"再送信+TEL",val:-110}]},
+  "東電EP":   {basicA:{30:935.25,40:1247,50:1558.75,60:1870.5},basicKVA:311.75,t1qty:120,t1p:29.8,t2qty:300,t2p:36.4,t3p:40.49,settos:[{name:"なし",val:0}]},
+  "JA":       {basicA:{30:935.25,40:1247,50:1558.75,60:1870.5},basicKVA:null,t1qty:120,t1p:29.8,t2qty:300,t2p:34.95,t3p:36.66,settos:[{name:"なし",val:0}]},
+  "ニチガス": {basicA:{30:935.25,40:1247,50:1558.75,60:1870.5},basicKVA:311.75,t1qty:200,t1p:null,t1fixed:6720,t2qty:300,t2p:35.1,t3p:38.7,settos:[{name:"デガ割▲300",val:-300},{name:"なし",val:0}]},
+  "au":       {basicA:{30:935.24,40:1246.99,50:1558.74,60:1870.49},basicKVA:311.74,t1qty:120,t1p:29.79,t2qty:300,t2p:36.39,t3p:40.48,settos:[{name:"なし",val:0}]},
+  "ソフトバンク":{basicA:{30:935.25,40:1247,50:1558.75,60:1870.5},basicKVA:311.75,t1qty:120,t1p:29.8,t2qty:300,t2p:36.4,t3p:40.49,settos:[{name:"なし（スマホ代の割引）",val:0}]},
+  "ドコモ":   {basicA:{30:1453.25,40:1747,50:2058.75,60:2370.5},basicKVA:311.75,t1qty:120,t1p:29.8,t2qty:300,t2p:36.4,t3p:40.49,settos:[{name:"なし",val:0}]},
+  "ENEOS":    {basicA:{30:935.25,40:1247,50:1558.75,60:1870.5},basicKVA:311.75,t1qty:120,t1p:29.8,t2qty:300,t2p:34.85,t3p:36.9,settos:[{name:"なし",val:0}]},
+  "ミツウロコ":{basicA:{30:935.25,40:1247,50:1558.75,60:1870.5},basicKVA:311.75,t1qty:120,t1p:31.91,t2qty:300,t2p:33.13,t3p:35.79,settos:[{name:"セット割▲220",val:-220},{name:"なし",val:0}]},
+  "ハルエネ": {basicA:{30:763.62,40:1018.16,50:1272.2,60:1527.24},basicKVA:254.54,t1qty:120,t1p:19.88,t2qty:300,t2p:26.48,t3p:30.57,settos:[{name:"なし",val:0}]},
+  "両毛丸善": {basicA:{30:852.87,40:1137.16,50:1421.45,60:1705.74},basicKVA:284.29,t1qty:120,t1p:19.69,t2qty:300,t2p:24.55,t3p:27.44,settos:[{name:"なし",val:0}]},
+  "東京ガス": {basicA:{30:935.22,40:1246.96,50:1558.7,60:1870.44},basicKVA:311.74,t1qty:120,t1p:29.7,t2qty:300,t2p:35.69,t3p:39.5,settos:[{name:"セット割▲275",val:-275},{name:"なし",val:0}]},
+  "鷲ガス":   {basicA:{30:935.22,40:1246.96,50:1558.7,60:1870.44},basicKVA:311.74,t1qty:120,t1p:29.7,t2qty:300,t2p:35.69,t3p:39.5,settos:[{name:"セット割▲275",val:-275},{name:"なし",val:0}]}
+};
+const COMPANY_INFO = {
+  "東電EP":    {contact:"0120-560-545",memo:""},
+  "JA":        {contact:"0800-700-0085",memo:"新規加入3か月間▲100"},
+  "ニチガス":  {contact:"栃木:0120-173-203　群馬:0120-458-138\n茨城:0120-877-127　埼玉:0120-36-1139",memo:""},
+  "au":        {contact:"0120-925-881",memo:"Pontaポイント(100円で1pt)\n携帯利用料金割引"},
+  "ソフトバンク":{contact:"0120-925-881",memo:"初月全額無料　※1年契約が条件\nPayPayポイント：最大3％\n携帯利用料金割引"},
+  "ドコモ":    {contact:"0120-800-000",memo:"新規3か月間▲1000円\ndポイント：最大2％(ゴールドカードは6％)"},
+  "ENEOS":     {contact:"0570-01-8704",memo:"にねんとくとく割　2年目まで▲0.2円/kWh　3年目以降▲0.3円/kWh\nガソリン▲1円/ℓ(MAX150ℓ)\n提携カード(楽天,ANAなど)ポイント付与 or Vポイント(200円で1pt…)"},
+  "ミツウロコ":{contact:"0800-300-0326",memo:"Pontaポイント：2年間 半年ごとに500pt(計500×4回)"},
+  "ハルエネ":  {contact:"0570-001-296",memo:"基本料1年無料※5年契約が条件"},
+  "両毛丸善":  {contact:"0284-70-2100",memo:""},
+  "東京ガス":  {contact:"0570-00-2211",memo:"月額利用料の合計×0.5%を割引"},
+  "鷲ガス":    {contact:"",memo:""}
+};
+const FUEL_ROWS = [
+  {y:2026,m:6, re:4.18, HTE:-7.3,  "東電EP":-7.3,  "ミツウロコ":-7.3, "ENEOS":-7.3,  "ニチガス":-7.3,  "au":-7.29,  "ソフトバンク":-7.3, "ドコモ":-7.3,  "JA":-7.3,  "鷲ガス":-7.3,  "ハルエネ":null, "両毛丸善":15.38, "東京ガス":-7.3},
+  {y:2026,m:5, re:4.18, HTE:-7.37, "東電EP":-7.37, "ミツウロコ":-7.37,"ENEOS":-7.37, "ニチガス":-7.37, "au":-7.36,  "ソフトバンク":-7.37,"ドコモ":-7.37, "JA":-7.37, "鷲ガス":-7.37, "ハルエネ":null, "両毛丸善":17.02, "東京ガス":-7.37},
+  {y:2026,m:4, re:3.98, HTE:-8.93, "東電EP":-8.93, "ミツウロコ":-8.93,"ENEOS":-8.93, "ニチガス":-8.93, "au":-7.42,  "ソフトバンク":-8.93,"ドコモ":-8.93, "JA":-8.93, "鷲ガス":-8.93, "ハルエネ":12.09,"両毛丸善":4.83,  "東京ガス":-8.93},
+  {y:2026,m:3, re:3.98, HTE:-12.09,"東電EP":-12.09,"ミツウロコ":-12.09,"ENEOS":-12.09,"ニチガス":-12.09,"au":-9.08,  "ソフトバンク":-12.09,"ドコモ":-12.09,"JA":-12.09,"鷲ガス":-12.09,"ハルエネ":2.87, "両毛丸善":4.26,  "東京ガス":-12.09},
+  {y:2026,m:2, re:3.98, HTE:-12.22,"東電EP":-12.22,"ミツウロコ":-12.22,"ENEOS":-12.22,"ニチガス":-12.22,"au":-12.22, "ソフトバンク":-12.22,"ドコモ":-12.22,"JA":-12.22,"鷲ガス":-12.22,"ハルエネ":-0.99,"両毛丸善":1.65,  "東京ガス":-12.22},
+  {y:2026,m:1, re:3.98, HTE:-7.72, "東電EP":-7.72, "ミツウロコ":-7.72,"ENEOS":-7.72, "ニチガス":-7.72, "au":-12.22, "ソフトバンク":-7.72,"ドコモ":-7.72, "JA":-7.72, "鷲ガス":-7.72, "ハルエネ":4.59, "両毛丸善":7.55,  "東京ガス":-7.72},
+  {y:2025,m:12,re:3.98, HTE:-7.7,  "東電EP":-7.7,  "ミツウロコ":-7.7, "ENEOS":-7.7,  "ニチガス":-7.7,  "au":-7.69,  "ソフトバンク":-7.7, "ドコモ":-7.7,  "JA":-7.7,  "鷲ガス":-7.7,  "ハルエネ":3.51, "両毛丸善":9.16,  "東京ガス":-7.7},
+  {y:2025,m:11,re:3.98, HTE:-7.65, "東電EP":-7.65, "ミツウロコ":-7.65,"ENEOS":-7.65, "ニチガス":-7.65, "au":-7.64,  "ソフトバンク":-7.65,"ドコモ":-7.65, "JA":-7.65, "鷲ガス":-7.65, "ハルエネ":4.32, "両毛丸善":8.24,  "東京ガス":-7.65},
+  {y:2025,m:10,re:3.98, HTE:-9.65, "東電EP":-9.65, "ミツウロコ":-9.65,"ENEOS":-9.65, "ニチガス":-9.65, "au":-7.64,  "ソフトバンク":-7.65,"ドコモ":-9.65, "JA":-9.65, "鷲ガス":-9.65, "ハルエネ":3.78, "両毛丸善":7.87,  "東京ガス":-9.65},
+  {y:2025,m:9, re:3.98, HTE:-9.9,  "東電EP":-9.9,  "ミツウロコ":-9.9, "ENEOS":-9.9,  "ニチガス":-9.9,  "au":-9.5,   "ソフトバンク":-7.5, "ドコモ":-9.9,  "JA":-9.9,  "鷲ガス":-9.9,  "ハルエネ":3.21, "両毛丸善":7.5,   "東京ガス":-9.9},
+  {y:2025,m:8, re:3.98, HTE:-9.25, "東電EP":-9.25, "ミツウロコ":-9.25,"ENEOS":-9.25, "ニチガス":-9.25, "au":-9.63,  "ソフトバンク":-7.25,"ドコモ":-9.25, "JA":-9.25, "鷲ガス":-9.25, "ハルエネ":3.96, "両毛丸善":9.08,  "東京ガス":-9.25},
+  {y:2025,m:7, re:3.98, HTE:-6.88, "東電EP":-6.88, "ミツウロコ":-6.88,"ENEOS":-6.88, "ニチガス":-6.88, "au":-8.87,  "ソフトバンク":-6.88,"ドコモ":-6.88, "JA":-6.88, "鷲ガス":-6.88, "ハルエネ":6.77, "両毛丸善":7.56,  "東京ガス":-6.88},
+  {y:2025,m:6, re:3.98, HTE:-6.39, "東電EP":-6.39, "ミツウロコ":-6.39,"ENEOS":-6.39, "ニチガス":-6.39, "au":-6.37,  "ソフトバンク":-6.39,"ドコモ":-6.39, "JA":-6.39, "鷲ガス":-6.39, "ハルエネ":5.66, "両毛丸善":5.26,  "東京ガス":-6.39},
+  {y:2025,m:5, re:3.98, HTE:-6.19, "東電EP":-6.19, "ミツウロコ":-6.19,"ENEOS":-6.19, "ニチガス":-6.19, "au":-6.18,  "ソフトバンク":-6.19,"ドコモ":-6.19, "JA":-6.19, "鷲ガス":-6.19, "ハルエネ":3.54, "両毛丸善":7.96,  "東京ガス":-6.19}
+];
+const TODAY=new Date();
+const MONTHS=FUEL_ROWS.filter(r=>{
+  const d=new Date(r.y,r.m-1,1),ago=new Date(TODAY.getFullYear()-1,TODAY.getMonth(),1);
+  const future=new Date(TODAY.getFullYear(),TODAY.getMonth()+2,1);
+  return d>=ago&&d<future;
+}).map(r=>({label:`${r.y}年${r.m}月`,key:`${r.y}-${String(r.m).padStart(2,'0')}`}));
+const HTE_DISCOUNTS=[
+  {name:"トリプル",val:-550},{name:"TV＋NET",val:-440},{name:"TV or NET＋TEL",val:-330},
+  {name:"TVのみ",val:-220},{name:"NETのみ",val:-220},{name:"なし",val:0},{name:"再送信+TEL",val:-110}
+];
+const CO_LIST=Object.keys(COMPANIES).filter(c=>c!=="HTE").concat(["HTE"]);
+const UNIT_LIST=[{label:"A（従量B・ぴったり）",val:"A"},{label:"kVA（従量C・ゆったり）",val:"kVA"}];
+
+// ============================================================
+// 状態管理
+// ============================================================
+const STATE={
+  "k-company":{val:"",label:""},
+  "k-unit":   {val:"A",label:"A（従量B・ぴったり）"},
+  "k-month":  MONTHS.length?{val:MONTHS[0].key,label:MONTHS[0].label}:{val:"",label:""},
+  "k-discount":{val:String(HTE_DISCOUNTS[0].val),label:HTE_DISCOUNTS[0].name},
+  "s-company":{val:"",label:""},
+  "s-unit":   {val:"A",label:"A（従量B・ぴったり）"},
+  "s-month":  MONTHS.length?{val:MONTHS[0].key,label:MONTHS[0].label}:{val:"",label:""},
+  "s-discount":{val:String(HTE_DISCOUNTS[0].val),label:HTE_DISCOUNTS[0].name},
+};
+function getVal(id){return STATE[id]?STATE[id].val:"";}
+function setVal(id,val,label){
+  STATE[id]={val,label};
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.textContent=label;
+  el.classList.remove("placeholder");
+}
+
+// ============================================================
+// ボトムシート
+// ============================================================
+let currentBsId="";
+
+function openBS(id){
+  currentBsId=id;
+  const list=document.getElementById("bs-list");
+  const title=document.getElementById("bs-title");
+  list.innerHTML="";
+  let items=[];
+  if(id.endsWith("-company")){
+    title.textContent="他社名を選択";
+    // 金額からシート（k-company）はHTEを除外
+    const list_co = id==="k-company" ? CO_LIST.filter(c=>c!=="HTE") : CO_LIST;
+    items=list_co.map(c=>({label:c,val:c}));
+  }
+  else if(id.endsWith("-unit")){title.textContent="単位を選択";items=UNIT_LIST.map(u=>({label:u.label,val:u.val}));}
+  else if(id.endsWith("-month")){
+    title.textContent="使用月を選択";
+    const pfx=id.replace("-month","");
+    const co=getVal(pfx+"-company");
+    items=MONTHS.map(function(m){
+      const disabled=(co==="ハルエネ" && m.key>="2026-05");
+      return {label: disabled ? m.label+"（燃料調整費非公開のため選択できません）" : m.label, val:m.key, disabled:disabled};
+    });
+  }
+  else if(id.endsWith("-discount")){title.textContent="当社割引を選択";items=HTE_DISCOUNTS.map(d=>({label:d.name,val:String(d.val)}));}
+  const curVal=getVal(id);
+  items.forEach(function(item){
+    const btn=document.createElement("button");
+    if(item.disabled){
+      btn.className="bs-item bs-item-disabled";
+      btn.textContent=item.label;
+      btn.disabled=true;
+    } else {
+      btn.className="bs-item"+(item.val===curVal?" selected":"");
+      btn.textContent=item.label;
+      btn.addEventListener("click",function(){selectItem(item.val,item.label);});
+    }
+    list.appendChild(btn);
+  });
+  document.getElementById("bs-overlay").classList.add("open");
+  setTimeout(function(){
+    const sel=list.querySelector(".selected");
+    if(sel)sel.scrollIntoView({block:"center"});
+  },100);
+}
+
+function selectItem(val,label){
+  setVal(currentBsId,val,label);
+  if(currentBsId.endsWith("-company")){
+    onCompanyChange(currentBsId.replace("-company",""),val);
+  }
+  document.getElementById("bs-overlay").classList.remove("open");
+}
+
+function closeBS(){
+  document.getElementById("bs-overlay").classList.remove("open");
+}
+
+// ============================================================
+// 計算ロジック
+// ============================================================
+function getBasicFee(co,ampere,unit){
+  const d=COMPANIES[co];if(!d)return 0;
+  if(unit==="kVA")return d.basicKVA!=null?d.basicKVA*ampere:0;
+  const c=[30,40,50,60].reduce((a,b)=>Math.abs(b-ampere)<Math.abs(a-ampere)?b:a);
+  return d.basicA[c]||0;
+}
+function getFuel(co,monthKey){
+  const row=FUEL_ROWS.find(r=>`${r.y}-${String(r.m).padStart(2,'0')}`===monthKey);
+  if(!row)return{fuel:0,re:4.18};
+  const v=row[co];
+  return{fuel:typeof v==="number"?v:(typeof row.HTE==="number"?row.HTE:0),re:row.re||4.18};
+}
+function calcTiers(co,usage){
+  const d=COMPANIES[co];if(!d)return{t1:0,t2:0,t3:0};
+  let t1,t2,t3;
+  if(d.t1fixed!=null){
+    t1=d.t1fixed;
+    t2=Math.max(0,Math.min(usage,d.t2qty)-d.t1qty)*d.t2p;
+    t3=Math.max(0,usage-d.t2qty)*d.t3p;
+  }else{
+    t1=Math.min(usage,d.t1qty)*d.t1p;
+    t2=Math.max(0,Math.min(usage,d.t2qty)-d.t1qty)*d.t2p;
+    t3=Math.max(0,usage-d.t2qty)*d.t3p;
+  }
+  return{t1:Math.round(t1*100)/100,t2:Math.round(t2*100)/100,t3:Math.round(t3*100)/100};
+}
+function calcTotal(co,usage,ampere,unit,monthKey,settoVal,hteDiscount){
+  const basic=getBasicFee(co,ampere,unit);
+  const tiers=calcTiers(co,usage);
+  const{fuel,re}=getFuel(co,monthKey);
+  const fuelAmt=Math.round(fuel*usage*100)/100;
+  const reAmt=Math.round(re*usage*100)/100;
+  const discount=co==="HTE"?hteDiscount:settoVal;
+  const total=basic+tiers.t1+tiers.t2+tiers.t3+fuelAmt+reAmt+discount;
+  return{basic,t1:tiers.t1,t2:tiers.t2,t3:tiers.t3,fuel:fuelAmt,re:reAmt,setto:discount,total:Math.round(total)};
+}
+function reverseCalc(co,totalBill,ampere,unit,monthKey,settoVal){
+  const d=COMPANIES[co];if(!d)return 0;
+  const basic=getBasicFee(co,ampere,unit);
+  const{fuel,re}=getFuel(co,monthKey);
+  const remaining=totalBill-basic-settoVal;
+  if(d.t1fixed!=null){
+    const r2=d.t2p+fuel+re,r3=d.t3p+fuel+re;
+    const c200=d.t1fixed+200*(fuel+re);
+    const c300=c200+(d.t2qty-d.t1qty)*r2;
+    if(remaining<=c200)return d.t1qty;
+    if(remaining<=c300)return Math.ceil(d.t1qty+(remaining-c200)/r2);
+    return Math.ceil(d.t2qty+(remaining-c300)/r3);
+  }
+  const r1=d.t1p+fuel+re,r2=d.t2p+fuel+re,r3=d.t3p+fuel+re;
+  const max1=d.t1qty*r1,max2=(d.t2qty-d.t1qty)*r2;
+  let u=0;
+  if(remaining<=max1)u=remaining/r1;
+  else if(remaining<=max1+max2)u=d.t1qty+(remaining-max1)/r2;
+  else u=d.t2qty+(remaining-max1-max2)/r3;
+  return Math.max(0,Math.ceil(u));
+}
+
+// ============================================================
+// UI イベント（addEventListener のみ使用）
+// ============================================================
+function onCompanyChange(pfx,co){
+  const settoEl=document.getElementById(pfx+"-setto");
+  if(!co||co==="HTE"){
+    settoEl.textContent="―";settoEl.classList.add("empty");
+  } else {
+    const s=COMPANIES[co].settos||[];
+    const filtered=s.filter(function(x){return x.name!=="なし"&&x.val!==0;});
+    settoEl.textContent=filtered.length?filtered.map(function(x){return x.name;}).join(" / "):"なし";
+    settoEl.classList.remove("empty");
+  }
+  const cEl=document.getElementById(pfx+"-contact");
+  const mEl=document.getElementById(pfx+"-memo");
+  if(!co){
+    cEl.textContent="他社名を選択すると表示されます";cEl.classList.add("empty");
+    mEl.textContent="他社名を選択すると表示されます";mEl.classList.add("empty");
+    return;
+  }
+  const info=COMPANY_INFO[co]||{contact:"",memo:""};
+  cEl.textContent=info.contact||"―";cEl.classList.toggle("empty",!info.contact);
+  mEl.textContent=info.memo||"―";mEl.classList.toggle("empty",!info.memo);
+}
+
+function doCalculate(pfx){
+  const co=getVal(pfx+"-company");
+  if(!co){alert("他社名を選択してください");return;}
+  const ampere=parseFloat(document.getElementById(pfx+"-ampere").value);
+  if(!ampere){alert("契約アンペア数を入力してください");return;}
+  const unit=getVal(pfx+"-unit")||"A";
+  const monthKey=getVal(pfx+"-month");
+  if(!monthKey){alert("使用月を選択してください");return;}
+  const hteDiscount=parseFloat(getVal(pfx+"-discount"))||0;
+  const settoVal=COMPANIES[co].settos&&COMPANIES[co].settos.length>0?COMPANIES[co].settos[0].val:0;
+
+  // ハルエネは2026年4月以降の燃調が不明のためエラー
+  if(co==="ハルエネ" && monthKey>="2026-05"){
+    alert("ハルエネは2026年5月以降の燃料調整費が未公表のため、試算できません。\n2026/4より前の月を選択してください。");
+    return;
+  }
+  let usage=0,otherTotal=0;
+  if(pfx==="k"){
+    const bill=parseFloat(document.getElementById("k-denki").value);
+    if(!bill){alert("電気代を入力してください");return;}
+    // HTEの場合は当社割引を考慮して逆算
+    const reverseSettoVal = co==="HTE" ? hteDiscount : settoVal;
+    usage=reverseCalc(co,bill,ampere,unit,monthKey,reverseSettoVal);
+    otherTotal=bill;
+  }else{
+    usage=parseFloat(document.getElementById("s-usage").value);
+    if(!usage){alert("使用量を入力してください");return;}
+    otherTotal=calcTotal(co,usage,ampere,unit,monthKey,settoVal,0).total;
+  }
+  const hteR=calcTotal("HTE",usage,ampere,unit,monthKey,0,hteDiscount);
+  const otherR=calcTotal(co,usage,ampere,unit,monthKey,settoVal,0);
+  const fmt=function(n){return Math.round(n).toLocaleString();};
+
+  // HTEを選択した場合はホームタウンでんきの料金のみ表示
+  if(co==="HTE"){
+    const html=`<div class="result-card">
+  <div class="result-head"><span class="co">ホームタウンでんき 料金試算</span></div>
+  <p class="sect-lbl">月額料金</p>
+  <div class="monthly-row" style="grid-template-columns:1fr">
+    <div class="monthly-box"><div class="lbl">ホームタウンでんき</div><div class="val">¥${fmt(hteR.total)}</div></div>
+  </div>
+  <p class="sect-lbl">明細内訳（推定使用量: ${usage}kWh）</p>
+  <table class="detail-table">
+    <thead><tr><th>項目</th><th>金額</th></tr></thead>
+    <tbody>
+      <tr><td>基本料金</td><td>¥${fmt(hteR.basic)}</td></tr>
+      <tr><td>電力量(1段)</td><td>¥${fmt(hteR.t1)}</td></tr>
+      <tr><td>電力量(2段)</td><td>¥${fmt(hteR.t2)}</td></tr>
+      <tr><td>電力量(3段)</td><td>¥${fmt(hteR.t3)}</td></tr>
+      <tr><td>燃料調整費</td><td>¥${fmt(hteR.fuel)}</td></tr>
+      <tr><td>再エネ賦課金</td><td>¥${fmt(hteR.re)}</td></tr>
+      <tr><td>割引等</td><td>${hteR.setto<0?"▲¥"+Math.abs(hteR.setto).toLocaleString():"―"}</td></tr>
+    </tbody>
+  </table>
+</div>`;
+    const el=document.getElementById(pfx+"-result");
+    el.innerHTML=html;
+    el.classList.remove("hidden");
+    setTimeout(function(){el.scrollIntoView({behavior:"smooth",block:"start"});},50);
+    return;
+  }
+
+  const md=otherTotal-hteR.total,yd=md*12,sv=md>0;
+  const gc=sv?"var(--green-dark)":"var(--red-dark)";
+  const bg=sv?"var(--green-light)":"var(--red-light)";
+  const sym=sv?"▲":"+";
+  const info=COMPANY_INFO[co]||{contact:"",memo:""};
+  const coLabel=co;
+  const html=`<div class="result-card">
+  <div class="result-head"><span class="co">${coLabel} vs ホームタウンでんき</span><span class="badge ${sv?"badge-save":"badge-loss"}">${sv?"お得":"割高"}</span></div>
+  <p class="sect-lbl">月額料金</p>
+  <div class="monthly-row">
+    <div class="monthly-box"><div class="lbl">ホームタウンでんき</div><div class="val">¥${fmt(hteR.total)}</div></div>
+    <div class="monthly-box"><div class="lbl">${coLabel}</div><div class="val">¥${fmt(otherTotal)}</div></div>
+  </div>
+  <div class="diff-row">
+    <div class="diff-box" style="background:${bg}"><div class="lbl" style="color:${gc}">月差額（他社－当社）</div><div class="val" style="color:${gc}">${sym}¥${Math.abs(md).toLocaleString()}</div></div>
+    <div class="diff-box" style="background:${bg}"><div class="lbl" style="color:${gc}">年差額（他社－当社）</div><div class="val" style="color:${gc}">${sym}¥${Math.abs(yd).toLocaleString()}</div></div>
+  </div>
+  <p class="sect-lbl">明細内訳（推定使用量: ${usage}kWh）</p>
+  <table class="detail-table">
+    <thead><tr><th>項目</th><th>ホームタウン</th><th>${coLabel}</th></tr></thead>
+    <tbody>
+      <tr><td>基本料金</td><td>¥${fmt(hteR.basic)}</td><td>¥${fmt(otherR.basic)}</td></tr>
+      <tr><td>電力量(1段)</td><td>¥${fmt(hteR.t1)}</td><td>¥${fmt(otherR.t1)}</td></tr>
+      <tr><td>電力量(2段)</td><td>¥${fmt(hteR.t2)}</td><td>¥${fmt(otherR.t2)}</td></tr>
+      <tr><td>電力量(3段)</td><td>¥${fmt(hteR.t3)}</td><td>¥${fmt(otherR.t3)}</td></tr>
+      <tr><td>燃料調整費</td><td>¥${fmt(hteR.fuel)}</td><td>¥${fmt(otherR.fuel)}</td></tr>
+      <tr><td>再エネ賦課金</td><td>¥${fmt(hteR.re)}</td><td>¥${fmt(otherR.re)}</td></tr>
+      <tr><td>割引等</td><td>${hteR.setto<0?"▲¥"+Math.abs(hteR.setto).toLocaleString():"―"}</td><td>${otherR.setto<0?"▲¥"+Math.abs(otherR.setto).toLocaleString():"―"}</td></tr>
+    </tbody>
+  </table>
+  ${(info.contact||info.memo)?`<div class="info-box">${info.contact?`<div class="info-row"><span class="info-lbl">連絡先</span><span class="info-val">${info.contact.replace(/\n/g,"<br>")}</span></div>`:""}${info.memo?`<div class="info-row"><span class="info-lbl">備考</span><span class="info-val">${info.memo.replace(/\n/g,"<br>")}</span></div>`:""}</div>`:""}
+</div>`;
+  const el=document.getElementById(pfx+"-result");
+  el.innerHTML=html;
+  el.classList.remove("hidden");
+  setTimeout(function(){el.scrollIntoView({behavior:"smooth",block:"start"});},50);
+}
+
+// ============================================================
+// イベント登録（HTML属性不使用・addEventListener のみ）
+// ============================================================
+document.addEventListener("DOMContentLoaded",function(){
+  // 初期ラベル表示
+  ["k","s"].forEach(function(pfx){
+    const mEl=document.getElementById(pfx+"-month");
+    if(mEl&&MONTHS.length)mEl.textContent=MONTHS[0].label;
+    const dEl=document.getElementById(pfx+"-discount");
+    if(dEl){dEl.textContent=HTE_DISCOUNTS[0].name;dEl.classList.remove("placeholder");}
+  });
+
+  // タブ
+  document.getElementById("tab-k").addEventListener("click",function(){
+    document.getElementById("tab-k").classList.add("active");
+    document.getElementById("tab-s").classList.remove("active");
+    document.getElementById("sheet-k").classList.add("active");
+    document.getElementById("sheet-s").classList.remove("active");
+  });
+  document.getElementById("tab-s").addEventListener("click",function(){
+    document.getElementById("tab-s").classList.add("active");
+    document.getElementById("tab-k").classList.remove("active");
+    document.getElementById("sheet-s").classList.add("active");
+    document.getElementById("sheet-k").classList.remove("active");
+  });
+
+  // カスタムセレクト
+  ["k-company","k-unit","k-month","k-discount","s-company","s-unit","s-month","s-discount"].forEach(function(id){
+    const el=document.getElementById(id);
+    if(el)el.addEventListener("click",function(){openBS(id);});
+  });
+
+  // 計算ボタン
+  document.getElementById("calc-k").addEventListener("click",function(){doCalculate("k");});
+  document.getElementById("calc-s").addEventListener("click",function(){doCalculate("s");});
+
+  // ボトムシート閉じる
+  document.getElementById("bs-close").addEventListener("click",function(){closeBS();});
+  document.getElementById("bs-overlay").addEventListener("click",function(e){
+    if(e.target===document.getElementById("bs-overlay"))closeBS();
+  });
+});
+</script>
+</body>
+</html>
